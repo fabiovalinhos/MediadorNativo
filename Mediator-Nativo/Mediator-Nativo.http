@@ -1,0 +1,6 @@
+@Mediator_Nativo_HostAddress = http://localhost:5117
+
+GET {{Mediator_Nativo_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
