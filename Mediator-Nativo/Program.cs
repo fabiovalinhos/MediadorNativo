@@ -9,8 +9,9 @@ builder.Services.AddControllers();
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
 
-builder.Services.AddSingleton<IMediator, Mediator>();
+builder.Services.AddTransient<IMediator, Mediator>();
 builder.Services.AddTransient<IRequestHandler<GetProdutosQuery, List<Produto>>, GetProdutosQueryHandler>();
+builder.Services.AddScoped<IRequestHandler<AddProdutoCommand, Produto>, AddProdutoCommandHandler>();
 
 
 var app = builder.Build();

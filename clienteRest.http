@@ -1,0 +1,15 @@
+GET http://localhost:5117/api/Produtos HTTP/1.1
+
+###
+
+POST http://localhost:5117/api/Produtos HTTP/1.1
+content-type: application/json
+
+{
+  "nome": "Notebook Dell",
+  "descricao": "i7, 16GB RAM",
+  "localDeEstoque": "Estoque A"
+}
+
+
+###

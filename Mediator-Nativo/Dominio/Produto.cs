@@ -18,5 +18,4 @@
         // Para EF Core ou deserialização, se necessário
         private Produto() { }
     }
-
 }

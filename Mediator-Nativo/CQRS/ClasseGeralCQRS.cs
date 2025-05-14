@@ -1,11 +1,5 @@
 ﻿using Mediator_Nativo.Dominio;
 using Mediator_Nativo.Gerador;
-using Microsoft.AspNetCore.Http.HttpResults;
-using Microsoft.AspNetCore.Mvc;
-using System.ComponentModel;
-using System;
-using System.Diagnostics.Contracts;
-using System.Runtime.InteropServices;
 
 namespace Mediator_Nativo.CQRS
 {
@@ -32,8 +26,11 @@ namespace Mediator_Nativo.CQRS
 
         public Task<TResponse> Send<TResponse>(IRequest<TResponse> request, CancellationToken cancellationToken = default)
         {
+            using var scope = _provider.CreateScope(); // escopo criado 
+            var scopedProvider = scope.ServiceProvider;
+
             var handlerType = typeof(IRequestHandler<,>).MakeGenericType(request.GetType(), typeof(TResponse));//IRequestHandler<GetProdutosQuery, List<Produto>>
-            var handler = _provider.GetService(handlerType); // GetProdutosQueryHandler
+            var handler = scopedProvider.GetService(handlerType); // GetProdutosQueryHandler
             // poderia ter usado o .GetRequiredService pois ele lança uma exceção se não encontrar o serviço
 
             if (handler == null)
@@ -62,6 +59,18 @@ namespace Mediator_Nativo.CQRS
         }
     }
 
+    public class AddProdutoCommandHandler : IRequestHandler<AddProdutoCommand, Produto>
+    {
+        // Lista estática simulando um "banco em memória"
+        private static readonly List<Produto> _produtos = new();
+
+        public Task<Produto> Handle(AddProdutoCommand request, CancellationToken cancellationToken)
+        {
+            var produto = new Produto(request.Nome, request.Descricao, request.LocalDeEstoque);
+            _produtos.Add(produto);
+            return Task.FromResult(produto);
+        }
+    }
 
 
     //    [Request HTTP] GET /api/produtos
@@ -77,4 +86,19 @@ namespace Mediator_Nativo.CQRS
     //    [Handler] retorna List<Produto> com dados
     //        ↓
     //    [Controller] retorna 200 OK com os dados
+
+    // ######
+
+    //[HTTP POST] → Controller
+    //               ↓
+    //         AddProdutoCommand
+    //               ↓
+    //          Mediator.Send()
+    //               ↓
+    //   AddProdutoCommandHandler.Handle()
+    //               ↓
+    //         Retorna Produto
+    //               ↓
+    //        Controller → 200 OK
+
 }
