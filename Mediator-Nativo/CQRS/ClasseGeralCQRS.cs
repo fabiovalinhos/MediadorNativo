@@ -1,4 +1,5 @@
-﻿using Mediator_Nativo.Dominio;
+﻿using System.Reflection;
+using Mediator_Nativo.Dominio;
 using Mediator_Nativo.Gerador;
 
 namespace Mediator_Nativo.CQRS
@@ -29,21 +30,35 @@ namespace Mediator_Nativo.CQRS
             using var scope = _provider.CreateScope(); // escopo criado 
             var scopedProvider = scope.ServiceProvider;
 
-            var handlerType = typeof(IRequestHandler<,>).MakeGenericType(request.GetType(), typeof(TResponse));//IRequestHandler<GetProdutosQuery, List<Produto>>
-            var handler = scopedProvider.GetService(handlerType); // GetProdutosQueryHandler
-            // poderia ter usado o .GetRequiredService pois ele lança uma exceção se não encontrar o serviço
+            var handlerType = typeof(IRequestHandler<,>).MakeGenericType(request.GetType(), typeof(TResponse));
+            //IRequestHandler<GetProdutosQuery, List<Produto>>
 
-            if (handler == null)
-                throw new InvalidOperationException($"Handler não encontrado para {request.GetType().Name}");
 
-            var method = handlerType.GetMethod("Handle")!;
-            //Por que usar o handlerType e não handler?
-            // Porque:
-            //Garante que você está pegando o método da interface esperada.
-            //Evita pegar acidentalmente uma implementação fora do contrato.
-            //Funciona bem quando você quer chamar algo dinamicamente e com segurança.
+            try
+            {
+                var handler = scopedProvider.GetRequiredService(handlerType);
+                // posso usar o GetService, mas ele nao lança exceção se não encontrar o handler.
+                // Apenas retorna null
 
-            return (Task<TResponse>)method.Invoke(handler, new object[] { request, cancellationToken })!;
+                var method = handlerType.GetMethod("Handle")!;
+                //Por que usar o handlerType e não handler?
+                // Porque:
+                //Garante que você está pegando o método da interface esperada.
+                //Evita pegar acidentalmente uma implementação fora do contrato.
+                //Funciona bem quando você quer chamar algo dinamicamente e com segurança.
+
+                return (Task<TResponse>)method.Invoke(handler, new object[] { request, cancellationToken })!;
+            }
+            catch (InvalidOperationException ex)
+            {
+                // Handler não registrado no DI
+                throw new InvalidOperationException($"Handler não encontrado para {request.GetType().Name}", ex);
+            }
+            catch (TargetInvocationException ex)
+            {
+                // Exceção lançada dentro do método Handle
+                throw new Exception($"Erro ao executar o handler para {request.GetType().Name}: {ex.InnerException?.Message}", ex.InnerException);
+            }
         }
     }
 
